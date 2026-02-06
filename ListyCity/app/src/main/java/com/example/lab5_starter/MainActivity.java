@@ -21,6 +21,9 @@ public class MainActivity extends AppCompatActivity implements CityDialogFragmen
     private ArrayList<City> cityArrayList;
     private ArrayAdapter<City> cityArrayAdapter;
 
+    private FirebaseFirestore db;
+    private CollectionReference citiesRef;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,7 +57,23 @@ public class MainActivity extends AppCompatActivity implements CityDialogFragmen
             CityDialogFragment cityDialogFragment = CityDialogFragment.newInstance(city);
             cityDialogFragment.show(getSupportFragmentManager(),"City Details");
         });
+        db = FirebaseFirestore.getInstance();
+        citiesRef = db.collection("cities");
+        citiesRef.addSnapshotListener((value, error) -> {
+            if (error != null) {
+                Log.e("Firestore", error.toString());
+            }
+            if (value != null && !value.isEmpty()) {
+                city.ArrayList.clear();
+                for (QueryDocumentSnapshot snapshot : value) {
+                    String name = snapshot.getString("name");
+                    String province = snapshot.getString("province");
 
+                    cityArrayList.add(new City(name, province));
+                }
+                cityArrayAdapter.notifyDataSetChanged();
+            }
+        });
     }
 
     @Override
@@ -71,6 +90,8 @@ public class MainActivity extends AppCompatActivity implements CityDialogFragmen
         cityArrayList.add(city);
         cityArrayAdapter.notifyDataSetChanged();
 
+        DocumentReference docRef = citiesRef.document(city.getName());
+        docRef.set(city);
     }
 
     public void addDummyData(){
